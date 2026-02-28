@@ -318,7 +318,7 @@ class ProfileScreen extends StatelessWidget {
           onTap: () => _navigateToLibraryScreen(context, title),
           child: Container(
             width: double.infinity,
-            height: 100,
+            height: 150,
             color: Color.fromARGB(255, 112, 186, 255),
             child: Center(
               child: Column(
