@@ -653,89 +653,200 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  int _itemCount = 10;
+  // Each section: { 'name': 'Section 1', 'count': 10 }
+  List<Map<String, dynamic>> _sections = [
+    {'name': 'Section 1', 'count': 5},
+    {'name': 'Section 2', 'count': 5},
+  ];
+  int _activeSection = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadCount();
+    _loadSections();
   }
 
-  Future<void> _loadCount() async {
+  Future<void> _loadSections() async {
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getInt('notifications_count');
-    if (saved != null && saved > _itemCount) {
-      setState(() => _itemCount = saved);
+    final raw = prefs.getString('notifications_sections');
+    if (raw != null) {
+      final list = jsonDecode(raw) as List;
+      setState(() {
+        _sections =
+            list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        if (_activeSection >= _sections.length) _activeSection = 0;
+      });
     }
   }
 
-  Future<void> _saveCount() async {
+  Future<void> _saveSections() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('notifications_count', _itemCount);
+    await prefs.setString('notifications_sections', jsonEncode(_sections));
   }
 
   void addItem() {
+    // Add a square to the active section
     setState(() {
-      _itemCount++;
+      _sections[_activeSection]['count'] =
+          (_sections[_activeSection]['count'] as int) + 1;
     });
-    _saveCount();
+    _saveSections();
   }
 
-  void _navigateToScreen(BuildContext context, int index) {
+  void _addSection() {
+    setState(() {
+      _sections.add({'name': 'Section ${_sections.length + 1}', 'count': 0});
+    });
+    _saveSections();
+  }
+
+  Future<void> _renameSection(int index) async {
+    final controller = TextEditingController(
+        text: _sections[index]['name'] as String);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rename Section'),
+        content: TextField(controller: controller, autofocus: true),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, controller.text),
+              child: const Text('Save')),
+        ],
+      ),
+    );
+    if (result != null && result.isNotEmpty) {
+      setState(() => _sections[index]['name'] = result);
+      _saveSections();
+    }
+  }
+
+  /// Unique notifId per section + index so each square has its own data.
+  int _notifId(int sectionIndex, int squareIndex) {
+    // Section 0 squares start at 1, section 1 at 10001, section 2 at 20001 etc.
+    return sectionIndex * 10000 + squareIndex + 1;
+  }
+
+  void _navigateToScreen(BuildContext context, int sectionIndex, int squareIndex) {
     Navigator.push(
       context,
-      FadeRoute(page: NotifDetailScreen(notifId: index + 1)),
+      FadeRoute(
+          page: NotifDetailScreen(
+              notifId: _notifId(sectionIndex, squareIndex))),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final sectionCount =
+        _sections[_activeSection]['count'] as int;
     return Container(
       color: const Color.fromARGB(255, 93, 176, 255),
-      padding: const EdgeInsets.all(16.0),
-      child: GridView.builder(
-        itemCount: _itemCount,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16.0,
-          mainAxisSpacing: 16.0,
-          childAspectRatio: 1.0,
-        ),
-        itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: () => _navigateToScreen(context, index),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 112, 186, 255),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Column(
-                children: [
-                  Expanded(
-                    child: Center(
-                      child: Icon(
-                        Icons.add_photo_alternate_outlined,
-                        color: Colors.white70,
-                        size: 48,
+      child: Column(
+        children: [
+          // ── Scrollable section tabs (matches Text/Photos bar style) ──
+          GestureDetector(
+            onLongPress: _addSection,
+            child: SizedBox(
+              height: 48,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _sections.length,
+                itemBuilder: (context, index) {
+                  final isActive = index == _activeSection;
+                  return GestureDetector(
+                    onTap: () =>
+                        setState(() => _activeSection = index),
+                    onDoubleTap: () => _renameSection(index),
+                    child: Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                      color: isActive
+                          ? Colors.blue
+                          : const Color.fromARGB(255, 112, 186, 255),
+                      child: Center(
+                        child: Text(
+                          _sections[index]['name'] as String,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: isActive
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(bottom: 10.0),
-                    child: Text(
-                      'Chara Name',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+                  );
+                },
               ),
             ),
-          );
-        },
+          ),
+          // ── Grid of squares for active section ──
+          Expanded(
+            child: sectionCount == 0
+                ? const Center(
+                    child: Text(
+                      'Long press nav icon to add a square',
+                      style:
+                          TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
+                  )
+                : GridView.builder(
+                    padding: const EdgeInsets.all(16.0),
+                    itemCount: sectionCount,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16.0,
+                      mainAxisSpacing: 16.0,
+                      childAspectRatio: 1.0,
+                    ),
+                    itemBuilder: (context, index) {
+                      return GestureDetector(
+                        onTap: () => _navigateToScreen(
+                            context, _activeSection, index),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(
+                                255, 112, 186, 255),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Column(
+                            children: [
+                              Expanded(
+                                child: Center(
+                                  child: Icon(
+                                    Icons
+                                        .add_photo_alternate_outlined,
+                                    color: Colors.white70,
+                                    size: 48,
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding:
+                                    EdgeInsets.only(bottom: 10.0),
+                                child: Text(
+                                  'Chara Name',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }

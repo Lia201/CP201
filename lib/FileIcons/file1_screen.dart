@@ -182,8 +182,26 @@ class _File1ScreenState extends State<File1Screen> {
   }
 }
 
-class File1ScreenContent extends StatelessWidget {
+class File1ScreenContent extends StatefulWidget {
   const File1ScreenContent({super.key});
+
+  @override
+  State<File1ScreenContent> createState() => _File1ScreenContentState();
+}
+
+class _File1ScreenContentState extends State<File1ScreenContent> {
+  final List<String> _descriptions = [
+    'Description 1',
+    'Description 2',
+    'Description 3',
+    'Description 4',
+    'Description 5',
+    'Description 6',
+    'Description 7',
+    'Description 8',
+    'Description 9',
+    'Description 10',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -194,16 +212,61 @@ class File1ScreenContent extends StatelessWidget {
           'Pass Pagiē',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: Colors.white, // Change the title color
+            color: Colors.white,
           ),
         ),
         centerTitle: true,
         backgroundColor: Colors.blue,
         iconTheme: const IconThemeData(
-          color: Colors.white, // Change the back arrow color to white
+          color: Colors.white,
         ),
       ),
-      body: Container(), // Empty body
+      body: GridView.builder(
+        padding: const EdgeInsets.all(16.0),
+        itemCount: _descriptions.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16.0,
+          mainAxisSpacing: 16.0,
+          childAspectRatio: 1.0,
+        ),
+        itemBuilder: (context, index) {
+          return Container(
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(255, 112, 186, 255),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                const Expanded(
+                  child: Center(
+                    child: Icon(
+                      Icons.add_photo_alternate_outlined,
+                      color: Colors.white70,
+                      size: 48,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(
+                      bottom: 10.0, left: 8.0, right: 8.0),
+                  child: Text(
+                    _descriptions[index],
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Reusable detail screen for every notification square.
-/// All data (name, description, text entries, photo paths) are stored in
-/// SharedPreferences keyed by [notifId].
+/// All data (name, description, text entries with titles, photo paths) are
+/// stored in SharedPreferences keyed by [notifId].
 class NotifDetailScreen extends StatefulWidget {
   final int notifId;
   const NotifDetailScreen({super.key, required this.notifId});
@@ -15,19 +16,34 @@ class NotifDetailScreen extends StatefulWidget {
 }
 
 class _NotifDetailScreenState extends State<NotifDetailScreen> {
-  String _name = '';
-  String _description = '';
+  // ─── Controllers for inline header fields ───
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _descCtrl;
+
   String _photoPath = '';
-  List<String> _texts = [];
+
+  // Each text entry is a map: { 'title': '', 'body': '' }
+  List<Map<String, String>> _texts = [];
   List<String> _photos = [];
   int _tabIndex = 0; // 0 = Text, 1 = Photos
+
+  final ImagePicker _picker = ImagePicker();
 
   String get _prefKey => 'notif_${widget.notifId}';
 
   @override
   void initState() {
     super.initState();
+    _nameCtrl = TextEditingController();
+    _descCtrl = TextEditingController();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -36,10 +52,20 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
     if (raw != null) {
       final map = jsonDecode(raw) as Map<String, dynamic>;
       setState(() {
-        _name = map['name'] as String? ?? '';
-        _description = map['description'] as String? ?? '';
+        _nameCtrl.text = map['name'] as String? ?? '';
+        _descCtrl.text = map['description'] as String? ?? '';
         _photoPath = map['photoPath'] as String? ?? '';
-        _texts = List<String>.from(map['texts'] as List? ?? []);
+
+        // Support both old format (List<String>) and new format (List<Map>)
+        final rawTexts = map['texts'] as List? ?? [];
+        _texts = rawTexts.map((e) {
+          if (e is Map) {
+            return Map<String, String>.from(e);
+          }
+          // Migrate old plain-string entries
+          return {'title': '', 'body': e.toString()};
+        }).toList();
+
         _photos = List<String>.from(map['photos'] as List? ?? []);
       });
     }
@@ -50,8 +76,8 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
     await prefs.setString(
       _prefKey,
       jsonEncode({
-        'name': _name,
-        'description': _description,
+        'name': _nameCtrl.text,
+        'description': _descCtrl.text,
         'photoPath': _photoPath,
         'texts': _texts,
         'photos': _photos,
@@ -59,117 +85,34 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
     );
   }
 
-  // ─── Editing helpers ───
-
-  Future<void> _editName() async {
-    final controller = TextEditingController(text: _name);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Edit Name'),
-        content: TextField(controller: controller, autofocus: true),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-    if (result != null) {
-      setState(() => _name = result);
-      _saveData();
-    }
-  }
-
-  Future<void> _editDescription() async {
-    final controller = TextEditingController(text: _description);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Edit Description'),
-        content: TextField(controller: controller, autofocus: true, maxLines: 3),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-    if (result != null) {
-      setState(() => _description = result);
-      _saveData();
-    }
-  }
-
-  Future<void> _editPhotoPath() async {
-    final controller = TextEditingController(text: _photoPath);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Set Photo Path'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: '/path/to/photo.jpg'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-    if (result != null) {
-      setState(() => _photoPath = result);
+  // ─── Pick header photo from device ───
+  Future<void> _pickHeaderPhoto() async {
+    final picked = await _picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() => _photoPath = picked.path);
       _saveData();
     }
   }
 
   // ─── Add items via long-press ───
-
   void _addText() {
     setState(() {
-      _texts.add('');
+      _texts.add({'title': '', 'body': ''});
     });
     _saveData();
   }
 
-  void _addPhoto() async {
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add Photo Path'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: '/path/to/photo.jpg'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-    if (result != null && result.isNotEmpty) {
+  Future<void> _addPhoto() async {
+    final picked = await _picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
       setState(() {
-        _photos.add(result);
+        _photos.add(picked.path);
       });
       _saveData();
     }
   }
 
   // ─── Build ───
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -186,8 +129,11 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
           backgroundColor: Colors.blue,
           centerTitle: true,
           title: Text(
-            _name.isEmpty ? 'Notification ${widget.notifId}' : _name,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            _nameCtrl.text.isEmpty
+                ? 'Notification ${widget.notifId}'
+                : _nameCtrl.text,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w600),
           ),
           iconTheme: const IconThemeData(color: Colors.white),
         ),
@@ -199,9 +145,9 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Photo square (left)
+                  // Photo square (left) — tap opens gallery
                   GestureDetector(
-                    onTap: _editPhotoPath,
+                    onTap: _pickHeaderPhoto,
                     child: Container(
                       width: 100,
                       height: 100,
@@ -209,7 +155,8 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
                         color: const Color.fromARGB(255, 112, 186, 255),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: _photoPath.isNotEmpty && File(_photoPath).existsSync()
+                      child: _photoPath.isNotEmpty &&
+                              File(_photoPath).existsSync()
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(10),
                               child: Image.file(
@@ -229,33 +176,48 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
                     ),
                   ),
                   const SizedBox(width: 14),
-                  // Name + Description (right of photo)
+                  // Name + Description — inline TextFields (no dialog)
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        GestureDetector(
-                          onTap: _editName,
-                          child: Text(
-                            _name.isEmpty ? 'Tap to set name' : _name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        TextField(
+                          controller: _nameCtrl,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
+                          decoration: const InputDecoration(
+                            hintText: 'Name',
+                            hintStyle: TextStyle(color: Colors.white54),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          onChanged: (_) {
+                            setState(() {}); // update app bar title
+                            _saveData();
+                          },
                         ),
-                        const SizedBox(height: 6),
-                        GestureDetector(
-                          onTap: _editDescription,
-                          child: Text(
-                            _description.isEmpty ? 'Tap to set description' : _description,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w400,
-                            ),
+                        const SizedBox(height: 4),
+                        TextField(
+                          controller: _descCtrl,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w400,
                           ),
+                          decoration: const InputDecoration(
+                            hintText: 'Description',
+                            hintStyle: TextStyle(color: Colors.white38),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          maxLines: null,
+                          minLines: 1,
+                          onChanged: (_) => _saveData(),
                         ),
                       ],
                     ),
@@ -333,31 +295,71 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(20),
       itemCount: _texts.length,
       itemBuilder: (context, index) {
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.only(bottom: 24),
           child: Container(
             height: 200,
             decoration: BoxDecoration(
               color: const Color.fromARGB(255, 112, 186, 255),
               borderRadius: BorderRadius.circular(10),
             ),
-            padding: const EdgeInsets.all(12),
-            child: TextField(
-              controller: TextEditingController(text: _texts[index]),
-              maxLines: null,
-              expands: true,
-              style: const TextStyle(color: Colors.white, fontSize: 15),
-              decoration: const InputDecoration.collapsed(
-                hintText: 'Type here...',
-                hintStyle: TextStyle(color: Colors.white54),
-              ),
-              onChanged: (val) {
-                _texts[index] = val;
-                _saveData();
-              },
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Column(
+              children: [
+                // Title field at top center (thin font)
+                TextField(
+                  controller: TextEditingController(
+                      text: _texts[index]['title'] ?? ''),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w300,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: 'Add a title...',
+                    hintStyle: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w300,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.only(bottom: 4),
+                  ),
+                  onChanged: (val) {
+                    _texts[index]['title'] = val;
+                    _saveData();
+                  },
+                ),
+                const Divider(
+                    color: Colors.white24, height: 1, thickness: 0.5),
+                const SizedBox(height: 4),
+                // Body field
+                Expanded(
+                  child: TextField(
+                    controller: TextEditingController(
+                        text: _texts[index]['body'] ?? ''),
+                    maxLines: null,
+                    expands: true,
+                    style:
+                        const TextStyle(color: Colors.white, fontSize: 15),
+                    decoration: const InputDecoration.collapsed(
+                      hintText: 'Type here...',
+                      hintStyle: TextStyle(color: Colors.white54),
+                    ),
+                    onChanged: (val) {
+                      _texts[index]['body'] = val;
+                      _saveData();
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -376,13 +378,13 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(20),
       itemCount: _photos.length,
       itemBuilder: (context, index) {
         final path = _photos[index];
         final file = File(path);
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.only(bottom: 24),
           child: Container(
             height: 200,
             decoration: BoxDecoration(
@@ -392,12 +394,16 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
             child: file.existsSync()
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(10),
-                    child: Image.file(file, fit: BoxFit.cover, width: double.infinity, height: 200),
+                    child: Image.file(file,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: 200),
                   )
                 : Center(
                     child: Text(
                       path,
-                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 13),
                       textAlign: TextAlign.center,
                     ),
                   ),
