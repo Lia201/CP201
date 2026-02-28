@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 
 // Importing screens with unique prefixes to avoid ambiguity
@@ -28,17 +30,8 @@ import 'FileIcons/file7_screen.dart' as file7;
 import 'FileIcons/file8_screen.dart' as file8;
 import 'FileIcons/file9_screen.dart' as file9;
 import 'FileIcons/file10_screen.dart' as file10;
-// Notification Screens
-import 'notifications/notif1_screen.dart' as notif1;
-import 'notifications/notif2_screen.dart' as notif2;
-import 'notifications/notif3_screen.dart' as notif3;
-import 'notifications/notif4_screen.dart' as notif4;
-import 'notifications/notif5_screen.dart' as notif5;
-import 'notifications/notif6_screen.dart' as notif6;
-import 'notifications/notif7_screen.dart' as notif7;
-import 'notifications/notif8_screen.dart' as notif8;
-import 'notifications/notif9_screen.dart' as notif9;
-import 'notifications/notif10_screen.dart' as notif10;
+// Notification Detail Screen
+import 'notifications/notif_detail_screen.dart';
 
 // Fade-in page route used for all navigation
 class FadeRoute extends PageRouteBuilder {
@@ -262,12 +255,32 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<String> _items = ['#1', '#2', '#3', '#4', '#5'];
+  List<String> _items = ['#1', '#2', '#3', '#4', '#5'];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadItems();
+  }
+
+  Future<void> _loadItems() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getStringList('home_items');
+    if (saved != null) {
+      setState(() => _items = saved);
+    }
+  }
+
+  Future<void> _saveItems() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('home_items', _items);
+  }
 
   void addItem() {
     setState(() {
       _items.add('#${_items.length + 1}');
     });
+    _saveItems();
   }
 
   void _navigateToDetailScreen(BuildContext context, String title) {
@@ -341,18 +354,41 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final List<Map<String, dynamic>> _entries = [
+  List<Map<String, dynamic>> _entries = [
     {'title': 'Void œ Atsura', 'subtitle': 'Gãcho Zacktaroā SinQua', 'iconIndex': 1},
     {'title': 'Ē Yōukáñ', 'subtitle': 'Gãcho Zacktaroā SinQua', 'iconIndex': 2},
     {'title': 'Sãi ōū Yeeo', 'subtitle': 'C-2/LD', 'iconIndex': 3},
     {'title': 'Ē rex hyū ōū Ohurakai Kitashi', 'subtitle': 'DL', 'iconIndex': 4},
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _loadEntries();
+  }
+
+  Future<void> _loadEntries() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('profile_entries');
+    if (raw != null) {
+      final list = jsonDecode(raw) as List;
+      setState(() {
+        _entries = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      });
+    }
+  }
+
+  Future<void> _saveEntries() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('profile_entries', jsonEncode(_entries));
+  }
+
   void addItem() {
     setState(() {
       final n = _entries.length + 1;
-      _entries.add({'title': 'New Library $n', 'subtitle': '', 'iconIndex': 0});
+      _entries.add({'title': 'New Library $n', 'subtitle': '', 'iconIndex': n});
     });
+    _saveEntries();
   }
 
   void _navigateToLibraryScreen(BuildContext context, String title) {
@@ -377,7 +413,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _onFacebookIconPressed(BuildContext context, int iconIndex) {
-    if (iconIndex == 0) return;
     Widget screen;
     switch (iconIndex) {
       case 1:
@@ -393,7 +428,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         screen = const Icon4Screen();
         break;
       default:
-        return;
+        screen = _PlaceholderScreen(title: 'Message $iconIndex');
+        break;
     }
     Navigator.push(context, FadeRoute(page: screen));
   }
@@ -435,19 +471,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ),
-        if (iconIndex > 0)
-          Positioned(
-            bottom: 10,
-            left: 10,
-            child: GestureDetector(
-              onTap: () => _onFacebookIconPressed(context, iconIndex),
-              child: const Icon(
-                Icons.message_outlined,
-                color: Color.fromARGB(255, 72, 167, 255),
-                size: 50,
-              ),
+        Positioned(
+          bottom: 10,
+          left: 10,
+          child: GestureDetector(
+            onTap: () => _onFacebookIconPressed(context, iconIndex),
+            child: const Icon(
+              Icons.message_outlined,
+              color: Color.fromARGB(255, 72, 167, 255),
+              size: 50,
             ),
           ),
+        ),
       ],
     );
   }
@@ -482,7 +517,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final List<String> _fileNames = [
+  List<String> _fileNames = [
     'Pass Pagiē',
     'Custom Name 2',
     'Custom Name 3',
@@ -495,10 +530,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
     'Custom Name 10',
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _loadFiles();
+  }
+
+  Future<void> _loadFiles() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getStringList('settings_files');
+    if (saved != null) {
+      setState(() => _fileNames = saved);
+    }
+  }
+
+  Future<void> _saveFiles() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('settings_files', _fileNames);
+  }
+
   void addItem() {
     setState(() {
       _fileNames.add('Custom Name ${_fileNames.length + 1}');
     });
+    _saveFiles();
   }
 
   void _navigateToFileScreen(BuildContext context, String fileName) {
@@ -600,33 +655,37 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   int _itemCount = 10;
 
-  static const List<Widget> _predefinedScreens = [
-    notif1.Notif1Screen(),
-    notif2.Notif2Screen(),
-    notif3.Notif3Screen(),
-    notif4.Notif4Screen(),
-    notif5.Notif5Screen(),
-    notif6.Notif6Screen(),
-    notif7.Notif7Screen(),
-    notif8.Notif8Screen(),
-    notif9.Notif9Screen(),
-    notif10.Notif10Screen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadCount();
+  }
+
+  Future<void> _loadCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getInt('notifications_count');
+    if (saved != null && saved > _itemCount) {
+      setState(() => _itemCount = saved);
+    }
+  }
+
+  Future<void> _saveCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('notifications_count', _itemCount);
+  }
 
   void addItem() {
     setState(() {
       _itemCount++;
     });
+    _saveCount();
   }
 
   void _navigateToScreen(BuildContext context, int index) {
-    final Widget screen;
-    if (index < _predefinedScreens.length) {
-      screen = _predefinedScreens[index];
-    } else {
-      screen = _PlaceholderScreen(title: 'Notification ${index + 1}');
-    }
-    Navigator.push(context, FadeRoute(page: screen));
+    Navigator.push(
+      context,
+      FadeRoute(page: NotifDetailScreen(notifId: index + 1)),
+    );
   }
 
   @override
@@ -690,12 +749,32 @@ class MessagesScreen extends StatefulWidget {
 }
 
 class _MessagesScreenState extends State<MessagesScreen> {
-  final List<String> _items = [];
+  List<String> _items = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMessages();
+  }
+
+  Future<void> _loadMessages() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getStringList('messages_items');
+    if (saved != null) {
+      setState(() => _items = saved);
+    }
+  }
+
+  Future<void> _saveMessages() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('messages_items', _items);
+  }
 
   void addItem() {
     setState(() {
       _items.add('Message ${_items.length + 1}');
     });
+    _saveMessages();
   }
 
   @override
