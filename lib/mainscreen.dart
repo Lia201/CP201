@@ -28,6 +28,17 @@ import 'FileIcons/file7_screen.dart' as file7;
 import 'FileIcons/file8_screen.dart' as file8;
 import 'FileIcons/file9_screen.dart' as file9;
 import 'FileIcons/file10_screen.dart' as file10;
+// Notification Screens
+import 'notifications/notif1_screen.dart' as notif1;
+import 'notifications/notif2_screen.dart' as notif2;
+import 'notifications/notif3_screen.dart' as notif3;
+import 'notifications/notif4_screen.dart' as notif4;
+import 'notifications/notif5_screen.dart' as notif5;
+import 'notifications/notif6_screen.dart' as notif6;
+import 'notifications/notif7_screen.dart' as notif7;
+import 'notifications/notif8_screen.dart' as notif8;
+import 'notifications/notif9_screen.dart' as notif9;
+import 'notifications/notif10_screen.dart' as notif10;
 
 void main() {
   runApp(const MaterialApp(
@@ -498,44 +509,74 @@ class SettingsScreen extends StatelessWidget {
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
+  static const List<Widget> _screens = [
+    notif1.Notif1Screen(),
+    notif2.Notif2Screen(),
+    notif3.Notif3Screen(),
+    notif4.Notif4Screen(),
+    notif5.Notif5Screen(),
+    notif6.Notif6Screen(),
+    notif7.Notif7Screen(),
+    notif8.Notif8Screen(),
+    notif9.Notif9Screen(),
+    notif10.Notif10Screen(),
+  ];
+
+  void _navigateToScreen(BuildContext context, int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => _screens[index]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-      return Container(
-        color: const Color.fromARGB(255, 93, 176, 255),
-        padding: const EdgeInsets.all(16.0),
-        child: GridView.builder(
-          itemCount: 10,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16.0,
-            mainAxisSpacing: 16.0,
-            childAspectRatio: 1.0,
-          ),
-          itemBuilder: (context, index) {
-            return GestureDetector(
-              onTap: () {
-                // Placeholder tap action; can navigate or show details
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 112, 186, 255),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Center(
-                  child: Text(
-                    'Square',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+    return Container(
+      color: const Color.fromARGB(255, 93, 176, 255),
+      padding: const EdgeInsets.all(16.0),
+      child: GridView.builder(
+        itemCount: 10,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16.0,
+          mainAxisSpacing: 16.0,
+          childAspectRatio: 1.0,
+        ),
+        itemBuilder: (context, index) {
+          return GestureDetector(
+            onTap: () => _navigateToScreen(context, index),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 112, 186, 255),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.add_photo_alternate_outlined,
+                      color: Colors.white70,
+                      size: 48,
                     ),
-                  ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Photo Coming Soon',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            );
-          },
-        ),
-      );
-    }
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
 class MessagesScreen extends StatelessWidget {
