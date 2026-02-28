@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Reusable detail screen for every notification square.
-/// All data (name, description, text entries with titles, photo paths) are
-/// stored in SharedPreferences keyed by [notifId].
+/// No AppBar — uses a small back button instead.
 class NotifDetailScreen extends StatefulWidget {
   final int notifId;
   const NotifDetailScreen({super.key, required this.notifId});
@@ -16,16 +16,13 @@ class NotifDetailScreen extends StatefulWidget {
 }
 
 class _NotifDetailScreenState extends State<NotifDetailScreen> {
-  // ─── Controllers for inline header fields ───
   late final TextEditingController _nameCtrl;
   late final TextEditingController _descCtrl;
 
   String _photoPath = '';
-
-  // Each text entry is a map: { 'title': '', 'body': '' }
   List<Map<String, String>> _texts = [];
   List<String> _photos = [];
-  int _tabIndex = 0; // 0 = Text, 1 = Photos
+  int _tabIndex = 0;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -55,17 +52,11 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
         _nameCtrl.text = map['name'] as String? ?? '';
         _descCtrl.text = map['description'] as String? ?? '';
         _photoPath = map['photoPath'] as String? ?? '';
-
-        // Support both old format (List<String>) and new format (List<Map>)
         final rawTexts = map['texts'] as List? ?? [];
         _texts = rawTexts.map((e) {
-          if (e is Map) {
-            return Map<String, String>.from(e);
-          }
-          // Migrate old plain-string entries
+          if (e is Map) return Map<String, String>.from(e);
           return {'title': '', 'body': e.toString()};
         }).toList();
-
         _photos = List<String>.from(map['photos'] as List? ?? []);
       });
     }
@@ -85,34 +76,51 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
     );
   }
 
-  // ─── Pick header photo from device ───
+  /// Safe image pick — catches MissingPluginException on unsupported platforms
+  Future<String?> _pickImage() async {
+    try {
+      final picked = await _picker.pickImage(source: ImageSource.gallery);
+      return picked?.path;
+    } on PlatformException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Image picker not available on this device')),
+        );
+      }
+      return null;
+    } on MissingPluginException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Image picker not supported — try on a real device')),
+        );
+      }
+      return null;
+    }
+  }
+
   Future<void> _pickHeaderPhoto() async {
-    final picked = await _picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() => _photoPath = picked.path);
+    final path = await _pickImage();
+    if (path != null) {
+      setState(() => _photoPath = path);
       _saveData();
     }
   }
 
-  // ─── Add items via long-press ───
   void _addText() {
-    setState(() {
-      _texts.add({'title': '', 'body': ''});
-    });
+    setState(() => _texts.add({'title': '', 'body': ''}));
     _saveData();
   }
 
   Future<void> _addPhoto() async {
-    final picked = await _picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() {
-        _photos.add(picked.path);
-      });
+    final path = await _pickImage();
+    if (path != null) {
+      setState(() => _photos.add(path));
       _saveData();
     }
   }
 
-  // ─── Build ───
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -125,173 +133,159 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
       },
       child: Scaffold(
         backgroundColor: const Color.fromARGB(255, 93, 176, 255),
-        appBar: AppBar(
-          backgroundColor: Colors.blue,
-          centerTitle: true,
-          title: Text(
-            _nameCtrl.text.isEmpty
-                ? 'Notification ${widget.notifId}'
-                : _nameCtrl.text,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w600),
-          ),
-          iconTheme: const IconThemeData(color: Colors.white),
-        ),
-        body: Column(
-          children: [
-            // ── Top info section ──
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Photo square (left) — tap opens gallery
-                  GestureDetector(
-                    onTap: _pickHeaderPhoto,
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 112, 186, 255),
-                        borderRadius: BorderRadius.circular(10),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // ── Top info section (replaces AppBar) ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Back button
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back,
+                          color: Colors.white, size: 26),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 4),
+                    // Photo square
+                    GestureDetector(
+                      onTap: _pickHeaderPhoto,
+                      child: Container(
+                        width: 90,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 112, 186, 255),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: _photoPath.isNotEmpty &&
+                                File(_photoPath).existsSync()
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.file(File(_photoPath),
+                                    fit: BoxFit.cover,
+                                    width: 90,
+                                    height: 90),
+                              )
+                            : const Center(
+                                child: Icon(
+                                    Icons.add_photo_alternate_outlined,
+                                    color: Colors.white70,
+                                    size: 36),
+                              ),
                       ),
-                      child: _photoPath.isNotEmpty &&
-                              File(_photoPath).existsSync()
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.file(
-                                File(_photoPath),
-                                fit: BoxFit.cover,
-                                width: 100,
-                                height: 100,
-                              ),
-                            )
-                          : const Center(
-                              child: Icon(
-                                Icons.add_photo_alternate_outlined,
-                                color: Colors.white70,
-                                size: 40,
-                              ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Name + Description (auto-expanding)
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextField(
+                            controller: _nameCtrl,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
+                            decoration: const InputDecoration(
+                              hintText: 'Name',
+                              hintStyle: TextStyle(color: Colors.white54),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            onChanged: (_) {
+                              setState(() {});
+                              _saveData();
+                            },
+                          ),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: _descCtrl,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            decoration: const InputDecoration(
+                              hintText: 'Description',
+                              hintStyle: TextStyle(color: Colors.white38),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            maxLines: null,
+                            minLines: 1,
+                            onChanged: (_) => _saveData(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── Tab buttons ──
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _tabIndex = 0),
+                      child: Container(
+                        height: 48,
+                        color: _tabIndex == 0
+                            ? Colors.blue
+                            : const Color.fromARGB(255, 112, 186, 255),
+                        child: const Center(
+                          child: Text('Text',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16)),
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  // Name + Description — inline TextFields (no dialog)
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextField(
-                          controller: _nameCtrl,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          decoration: const InputDecoration(
-                            hintText: 'Name',
-                            hintStyle: TextStyle(color: Colors.white54),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          onChanged: (_) {
-                            setState(() {}); // update app bar title
-                            _saveData();
-                          },
+                    child: GestureDetector(
+                      onTap: () => setState(() => _tabIndex = 1),
+                      child: Container(
+                        height: 48,
+                        color: _tabIndex == 1
+                            ? Colors.blue
+                            : const Color.fromARGB(255, 112, 186, 255),
+                        child: const Center(
+                          child: Text('Photos',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16)),
                         ),
-                        const SizedBox(height: 4),
-                        TextField(
-                          controller: _descCtrl,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w400,
-                          ),
-                          decoration: const InputDecoration(
-                            hintText: 'Description',
-                            hintStyle: TextStyle(color: Colors.white38),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          maxLines: null,
-                          minLines: 1,
-                          onChanged: (_) => _saveData(),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
 
-            // ── Tab buttons ──
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _tabIndex = 0),
-                    child: Container(
-                      height: 48,
-                      color: _tabIndex == 0
-                          ? Colors.blue
-                          : const Color.fromARGB(255, 112, 186, 255),
-                      child: const Center(
-                        child: Text(
-                          'Text',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _tabIndex = 1),
-                    child: Container(
-                      height: 48,
-                      color: _tabIndex == 1
-                          ? Colors.blue
-                          : const Color.fromARGB(255, 112, 186, 255),
-                      child: const Center(
-                        child: Text(
-                          'Photos',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            // ── Tab content ──
-            Expanded(
-              child: _tabIndex == 0 ? _buildTextTab() : _buildPhotosTab(),
-            ),
-          ],
+              // ── Tab content ──
+              Expanded(
+                child: _tabIndex == 0 ? _buildTextTab() : _buildPhotosTab(),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // ─── Text tab ───
+  // ─── Text tab — boxes auto-expand with content ───
   Widget _buildTextTab() {
     if (_texts.isEmpty) {
       return const Center(
-        child: Text(
-          'Long press to add text',
-          style: TextStyle(color: Colors.white70, fontSize: 16),
-        ),
+        child: Text('Long press to add text',
+            style: TextStyle(color: Colors.white70, fontSize: 16)),
       );
     }
     return ListView.builder(
@@ -301,15 +295,16 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
         return Padding(
           padding: const EdgeInsets.only(bottom: 24),
           child: Container(
-            height: 200,
+            constraints: const BoxConstraints(minHeight: 200),
             decoration: BoxDecoration(
               color: const Color.fromARGB(255, 112, 186, 255),
               borderRadius: BorderRadius.circular(10),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Title field at top center (thin font)
+                // Title
                 TextField(
                   controller: TextEditingController(
                       text: _texts[index]['title'] ?? ''),
@@ -323,11 +318,10 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
                   decoration: const InputDecoration(
                     hintText: 'Add a title...',
                     hintStyle: TextStyle(
-                      color: Colors.white38,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w300,
-                      fontStyle: FontStyle.italic,
-                    ),
+                        color: Colors.white38,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w300,
+                        fontStyle: FontStyle.italic),
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.only(bottom: 4),
@@ -340,24 +334,22 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
                 const Divider(
                     color: Colors.white24, height: 1, thickness: 0.5),
                 const SizedBox(height: 4),
-                // Body field
-                Expanded(
-                  child: TextField(
-                    controller: TextEditingController(
-                        text: _texts[index]['body'] ?? ''),
-                    maxLines: null,
-                    expands: true,
-                    style:
-                        const TextStyle(color: Colors.white, fontSize: 15),
-                    decoration: const InputDecoration.collapsed(
-                      hintText: 'Type here...',
-                      hintStyle: TextStyle(color: Colors.white54),
-                    ),
-                    onChanged: (val) {
-                      _texts[index]['body'] = val;
-                      _saveData();
-                    },
+                // Body — grows with content
+                TextField(
+                  controller: TextEditingController(
+                      text: _texts[index]['body'] ?? ''),
+                  maxLines: null,
+                  minLines: 6,
+                  style:
+                      const TextStyle(color: Colors.white, fontSize: 15),
+                  decoration: const InputDecoration.collapsed(
+                    hintText: 'Type here...',
+                    hintStyle: TextStyle(color: Colors.white54),
                   ),
+                  onChanged: (val) {
+                    _texts[index]['body'] = val;
+                    _saveData();
+                  },
                 ),
               ],
             ),
@@ -371,10 +363,8 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
   Widget _buildPhotosTab() {
     if (_photos.isEmpty) {
       return const Center(
-        child: Text(
-          'Long press to add photo',
-          style: TextStyle(color: Colors.white70, fontSize: 16),
-        ),
+        child: Text('Long press to add photo',
+            style: TextStyle(color: Colors.white70, fontSize: 16)),
       );
     }
     return ListView.builder(
@@ -400,12 +390,10 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
                         height: 200),
                   )
                 : Center(
-                    child: Text(
-                      path,
-                      style: const TextStyle(
-                          color: Colors.white70, fontSize: 13),
-                      textAlign: TextAlign.center,
-                    ),
+                    child: Text(path,
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 13),
+                        textAlign: TextAlign.center),
                   ),
           ),
         );

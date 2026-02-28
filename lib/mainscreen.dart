@@ -653,17 +653,33 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  // Each section: { 'name': 'Section 1', 'count': 10 }
+  // Each section: { 'name': 'Section 1', 'count': 5 }
   List<Map<String, dynamic>> _sections = [
     {'name': 'Section 1', 'count': 5},
     {'name': 'Section 2', 'count': 5},
   ];
   int _activeSection = 0;
+  int _editingSectionIndex = -1; // which section tab is being renamed inline
+  final TextEditingController _renameSectionCtrl = TextEditingController();
+  final FocusNode _renameFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _loadSections();
+    _renameFocusNode.addListener(() {
+      // When focus lost, commit the rename
+      if (!_renameFocusNode.hasFocus && _editingSectionIndex >= 0) {
+        _commitRename();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _renameSectionCtrl.dispose();
+    _renameFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSections() async {
@@ -685,7 +701,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   void addItem() {
-    // Add a square to the active section
     setState(() {
       _sections[_activeSection]['count'] =
           (_sections[_activeSection]['count'] as int) + 1;
@@ -700,37 +715,69 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     _saveSections();
   }
 
-  Future<void> _renameSection(int index) async {
-    final controller = TextEditingController(
-        text: _sections[index]['name'] as String);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Rename Section'),
-        content: TextField(controller: controller, autofocus: true),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, controller.text),
-              child: const Text('Save')),
-        ],
-      ),
-    );
-    if (result != null && result.isNotEmpty) {
-      setState(() => _sections[index]['name'] = result);
-      _saveSections();
+  void _startRename(int index) {
+    setState(() {
+      _editingSectionIndex = index;
+      _renameSectionCtrl.text = _sections[index]['name'] as String;
+    });
+    // Request focus after frame builds
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _renameFocusNode.requestFocus();
+      _renameSectionCtrl.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _renameSectionCtrl.text.length,
+      );
+    });
+  }
+
+  void _commitRename() {
+    if (_editingSectionIndex >= 0 &&
+        _editingSectionIndex < _sections.length) {
+      final newName = _renameSectionCtrl.text.trim();
+      if (newName.isNotEmpty) {
+        setState(() {
+          _sections[_editingSectionIndex]['name'] = newName;
+          _editingSectionIndex = -1;
+        });
+        _saveSections();
+      } else {
+        setState(() => _editingSectionIndex = -1);
+      }
     }
   }
 
-  /// Unique notifId per section + index so each square has its own data.
+  /// Can delete a section only if it has 0 squares.
+  void _tryDeleteSection(int index) {
+    final count = _sections[index]['count'] as int;
+    if (count > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Delete all squares in this section first')),
+      );
+      return;
+    }
+    if (_sections.length <= 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cannot delete the last section')),
+      );
+      return;
+    }
+    setState(() {
+      _sections.removeAt(index);
+      if (_activeSection >= _sections.length) {
+        _activeSection = _sections.length - 1;
+      }
+    });
+    _saveSections();
+  }
+
   int _notifId(int sectionIndex, int squareIndex) {
-    // Section 0 squares start at 1, section 1 at 10001, section 2 at 20001 etc.
     return sectionIndex * 10000 + squareIndex + 1;
   }
 
-  void _navigateToScreen(BuildContext context, int sectionIndex, int squareIndex) {
+  void _navigateToScreen(
+      BuildContext context, int sectionIndex, int squareIndex) {
     Navigator.push(
       context,
       FadeRoute(
@@ -739,15 +786,68 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
+  /// Long-press a square: confirm → move to Messages screen.
+  Future<void> _onSquareLongPress(int squareIndex) async {
+    final notifId = _notifId(_activeSection, squareIndex);
+    // Load the chara name from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('notif_$notifId');
+    String charaName = 'Chara Name';
+    if (raw != null) {
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      final n = map['name'] as String? ?? '';
+      if (n.isNotEmpty) charaName = n;
+    }
+
+    if (!mounted) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Move to Messages?'),
+        content:
+            Text('Are you sure you want to move "$charaName" to Messages?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('No')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Yes')),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    // Save the moved item info in messages_moved list
+    final movedRaw = prefs.getString('messages_moved') ?? '[]';
+    final movedList = jsonDecode(movedRaw) as List;
+    movedList.add({
+      'notifId': notifId,
+      'charaName': charaName,
+      'fromSection': _activeSection,
+      'fromIndex': squareIndex,
+    });
+    await prefs.setString('messages_moved', jsonEncode(movedList));
+
+    // Decrease the section count
+    setState(() {
+      _sections[_activeSection]['count'] =
+          (_sections[_activeSection]['count'] as int) - 1;
+    });
+    _saveSections();
+
+    // Notify MessagesScreen to reload
+    // (it loads from SharedPreferences, so just trigger rebuild via parent)
+  }
+
   @override
   Widget build(BuildContext context) {
-    final sectionCount =
-        _sections[_activeSection]['count'] as int;
+    final sectionCount = _sections[_activeSection]['count'] as int;
     return Container(
       color: const Color.fromARGB(255, 93, 176, 255),
       child: Column(
         children: [
-          // ── Scrollable section tabs (matches Text/Photos bar style) ──
+          // ── Scrollable section tabs ──
           GestureDetector(
             onLongPress: _addSection,
             child: SizedBox(
@@ -757,27 +857,53 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 itemCount: _sections.length,
                 itemBuilder: (context, index) {
                   final isActive = index == _activeSection;
+                  final isEditing = index == _editingSectionIndex;
+
                   return GestureDetector(
-                    onTap: () =>
-                        setState(() => _activeSection = index),
-                    onDoubleTap: () => _renameSection(index),
+                    onTap: () {
+                      if (_editingSectionIndex >= 0) _commitRename();
+                      setState(() => _activeSection = index);
+                    },
+                    onDoubleTap: () => _startRename(index),
+                    onLongPress: () => _tryDeleteSection(index),
                     child: Container(
                       height: 48,
-                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 28),
                       color: isActive
                           ? Colors.blue
                           : const Color.fromARGB(255, 112, 186, 255),
                       child: Center(
-                        child: Text(
-                          _sections[index]['name'] as String,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: isActive
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            fontSize: 16,
-                          ),
-                        ),
+                        child: isEditing
+                            ? SizedBox(
+                                width: 120,
+                                child: TextField(
+                                  controller: _renameSectionCtrl,
+                                  focusNode: _renameFocusNode,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  decoration: const InputDecoration(
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                  onSubmitted: (_) => _commitRename(),
+                                ),
+                              )
+                            : Text(
+                                _sections[index]['name'] as String,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: isActive
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  fontSize: 16,
+                                ),
+                              ),
                       ),
                     ),
                   );
@@ -785,15 +911,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
             ),
           ),
-          // ── Grid of squares for active section ──
+          // ── Grid of squares ──
           Expanded(
             child: sectionCount == 0
                 ? const Center(
-                    child: Text(
-                      'Long press nav icon to add a square',
-                      style:
-                          TextStyle(color: Colors.white70, fontSize: 16),
-                    ),
+                    child: Text('Long press nav icon to add a square',
+                        style: TextStyle(
+                            color: Colors.white70, fontSize: 16)),
                   )
                 : GridView.builder(
                     padding: const EdgeInsets.all(16.0),
@@ -809,11 +933,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       return GestureDetector(
                         onTap: () => _navigateToScreen(
                             context, _activeSection, index),
+                        onLongPress: () =>
+                            _onSquareLongPress(index),
                         child: Container(
                           decoration: BoxDecoration(
                             color: const Color.fromARGB(
                                 255, 112, 186, 255),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius:
+                                BorderRadius.circular(12),
                           ),
                           child: const Column(
                             children: [
@@ -828,8 +955,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 ),
                               ),
                               Padding(
-                                padding:
-                                    EdgeInsets.only(bottom: 10.0),
+                                padding: EdgeInsets.only(
+                                    bottom: 10.0),
                                 child: Text(
                                   'Chara Name',
                                   style: TextStyle(
@@ -860,65 +987,170 @@ class MessagesScreen extends StatefulWidget {
 }
 
 class _MessagesScreenState extends State<MessagesScreen> {
-  List<String> _items = [];
+  // Moved items from notifications:
+  // Each: { 'notifId': int, 'charaName': String, 'fromSection': int, 'fromIndex': int }
+  List<Map<String, dynamic>> _movedItems = [];
 
   @override
   void initState() {
     super.initState();
-    _loadMessages();
+    _loadMoved();
   }
 
-  Future<void> _loadMessages() async {
+  Future<void> _loadMoved() async {
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getStringList('messages_items');
-    if (saved != null) {
-      setState(() => _items = saved);
-    }
+    final raw = prefs.getString('messages_moved') ?? '[]';
+    final list = jsonDecode(raw) as List;
+    setState(() {
+      _movedItems =
+          list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    });
   }
 
-  Future<void> _saveMessages() async {
+  Future<void> _saveMoved() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('messages_items', _items);
+    await prefs.setString('messages_moved', jsonEncode(_movedItems));
   }
 
   void addItem() {
-    setState(() {
-      _items.add('Message ${_items.length + 1}');
-    });
-    _saveMessages();
+    // Called from long-press on nav icon — reload moved items
+    _loadMoved();
+  }
+
+  /// Swipe right → restore square back to its original notification section.
+  Future<void> _restoreToNotifications(int index) async {
+    final item = _movedItems[index];
+    final sectionIndex = item['fromSection'] as int;
+
+    final prefs = await SharedPreferences.getInstance();
+    // Load sections
+    final raw = prefs.getString('notifications_sections');
+    if (raw != null) {
+      final sections = (jsonDecode(raw) as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      if (sectionIndex < sections.length) {
+        sections[sectionIndex]['count'] =
+            (sections[sectionIndex]['count'] as int) + 1;
+        await prefs.setString(
+            'notifications_sections', jsonEncode(sections));
+      }
+    }
+
+    setState(() => _movedItems.removeAt(index));
+    _saveMoved();
+  }
+
+  /// Swipe left → permanently delete.
+  Future<void> _permanentlyDelete(int index) async {
+    final item = _movedItems[index];
+    final charaName = item['charaName'] as String;
+
+    if (!mounted) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete permanently?'),
+        content: Text(
+            'Are you sure you want to permanently delete "$charaName"?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('No')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Yes')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    // Also remove the notif data from SharedPreferences
+    final notifId = item['notifId'] as int;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('notif_$notifId');
+
+    setState(() => _movedItems.removeAt(index));
+    _saveMoved();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_items.isEmpty) {
+    if (_movedItems.isEmpty) {
       return const Center(
-        child: Text(
-          'Messages Screen',
-          style: TextStyle(color: Colors.white, fontSize: 18),
-        ),
+        child: Text('No messages',
+            style: TextStyle(color: Colors.white70, fontSize: 18)),
       );
     }
     return Container(
       color: const Color.fromARGB(255, 93, 176, 255),
       child: ListView.builder(
         padding: const EdgeInsets.all(16.0),
-        itemCount: _items.length,
+        itemCount: _movedItems.length,
         itemBuilder: (context, index) {
+          final item = _movedItems[index];
+          final charaName = item['charaName'] as String;
+          final notifId = item['notifId'] as int;
+
           return Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
-            child: Container(
-              height: 80,
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 112, 186, 255),
-                borderRadius: BorderRadius.circular(10),
+            child: Dismissible(
+              key: ValueKey('msg_${notifId}_$index'),
+              background: Container(
+                // Swipe right → restore (green)
+                decoration: BoxDecoration(
+                  color: Colors.green.shade400,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.only(left: 20),
+                child: const Icon(Icons.restore, color: Colors.white, size: 30),
               ),
-              child: Center(
-                child: Text(
-                  _items[index],
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+              secondaryBackground: Container(
+                // Swipe left → delete (red)
+                decoration: BoxDecoration(
+                  color: Colors.red.shade400,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 20),
+                child:
+                    const Icon(Icons.delete_forever, color: Colors.white, size: 30),
+              ),
+              confirmDismiss: (direction) async {
+                if (direction == DismissDirection.startToEnd) {
+                  // Swipe right → restore
+                  await _restoreToNotifications(index);
+                  return false; // we already removed it
+                } else {
+                  // Swipe left → permanently delete
+                  await _permanentlyDelete(index);
+                  return false;
+                }
+              },
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    FadeRoute(
+                        page: NotifDetailScreen(notifId: notifId)),
+                  );
+                },
+                child: Container(
+                  height: 70,
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(255, 112, 186, 255),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: Text(
+                      charaName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ),
