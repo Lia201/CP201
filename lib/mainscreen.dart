@@ -105,23 +105,26 @@ class _MainScreenState extends State<MainScreen>
     setState(() {
       _currentIndex = index;
     });
-    switch (index) {
-      case 0:
-        _homeKey.currentState?.addItem();
-        break;
-      case 1:
-        _settingsKey.currentState?.addItem();
-        break;
-      case 2:
-        _notificationsKey.currentState?.addItem();
-        break;
-      case 3:
-        _profileKey.currentState?.addItem();
-        break;
-      case 4:
-        _messagesKey.currentState?.addItem();
-        break;
-    }
+    // Wait for the frame to build so the target screen is mounted
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      switch (index) {
+        case 0:
+          _homeKey.currentState?.addItem();
+          break;
+        case 1:
+          _settingsKey.currentState?.addItem();
+          break;
+        case 2:
+          _notificationsKey.currentState?.addItem();
+          break;
+        case 3:
+          _profileKey.currentState?.addItem();
+          break;
+        case 4:
+          _messagesKey.currentState?.addItem();
+          break;
+      }
+    });
   }
 
   void _onExclamationButtonPressed() {
@@ -967,23 +970,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               return Column(
                                 children: [
                                   Expanded(
-                                    child: Center(
-                                      child: hasPhoto
-                                          ? ClipRRect(
-                                              borderRadius: const BorderRadius.vertical(
-                                                  top: Radius.circular(12)),
-                                              child: Image.file(
-                                                File(photo),
-                                                fit: BoxFit.cover,
-                                                width: double.infinity,
-                                                height: double.infinity,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(
+                                          top: 8, left: 8, right: 8),
+                                      child: Center(
+                                        child: hasPhoto
+                                            ? ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                child: Image.file(
+                                                  File(photo),
+                                                  fit: BoxFit.cover,
+                                                  width: double.infinity,
+                                                  height: double.infinity,
+                                                ),
+                                              )
+                                            : const Icon(
+                                                Icons.add_photo_alternate_outlined,
+                                                color: Colors.white70,
+                                                size: 48,
                                               ),
-                                            )
-                                          : const Icon(
-                                              Icons.add_photo_alternate_outlined,
-                                              color: Colors.white70,
-                                              size: 48,
-                                            ),
+                                      ),
                                     ),
                                   ),
                                   Padding(
