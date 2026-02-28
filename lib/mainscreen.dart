@@ -40,6 +40,19 @@ import 'notifications/notif8_screen.dart' as notif8;
 import 'notifications/notif9_screen.dart' as notif9;
 import 'notifications/notif10_screen.dart' as notif10;
 
+// Fade-in page route used for all navigation
+class FadeRoute extends PageRouteBuilder {
+  final Widget page;
+  FadeRoute({required this.page})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 300),
+        );
+}
+
 void main() {
   runApp(const MaterialApp(
     home: MainScreen(),
@@ -58,17 +71,24 @@ class _MainScreenState extends State<MainScreen>
   int _currentIndex = 0;
   late AnimationController _controller;
 
-  final List<Widget> _children = [
-    const HomeScreen(),
-    const SettingsScreen(),
-    const NotificationsScreen(),
-    const ProfileScreen(),
-    const MessagesScreen(),
-  ];
+  final _homeKey = GlobalKey<_HomeScreenState>();
+  final _settingsKey = GlobalKey<_SettingsScreenState>();
+  final _notificationsKey = GlobalKey<_NotificationsScreenState>();
+  final _profileKey = GlobalKey<_ProfileScreenState>();
+  final _messagesKey = GlobalKey<_MessagesScreenState>();
+
+  late final List<Widget> _children;
 
   @override
   void initState() {
     super.initState();
+    _children = [
+      HomeScreen(key: _homeKey),
+      SettingsScreen(key: _settingsKey),
+      NotificationsScreen(key: _notificationsKey),
+      ProfileScreen(key: _profileKey),
+      MessagesScreen(key: _messagesKey),
+    ];
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -87,10 +107,33 @@ class _MainScreenState extends State<MainScreen>
     });
   }
 
+  void _onLongPress(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+    switch (index) {
+      case 0:
+        _homeKey.currentState?.addItem();
+        break;
+      case 1:
+        _settingsKey.currentState?.addItem();
+        break;
+      case 2:
+        _notificationsKey.currentState?.addItem();
+        break;
+      case 3:
+        _profileKey.currentState?.addItem();
+        break;
+      case 4:
+        _messagesKey.currentState?.addItem();
+        break;
+    }
+  }
+
   void _onExclamationButtonPressed() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const InfoScreen()),
+      FadeRoute(page: const InfoScreen()),
     );
   }
 
@@ -147,44 +190,59 @@ class _MainScreenState extends State<MainScreen>
         onTap: onTabTapped,
         showSelectedLabels: false,
         showUnselectedLabels: false,
-        items: const [
+        items: [
           BottomNavigationBarItem(
             backgroundColor: Colors.blue,
-            icon: Padding(
-              padding: EdgeInsets.all(15.0),
-              child: Icon(Icons.now_widgets, size: 40),
+            icon: GestureDetector(
+              onLongPress: () => _onLongPress(0),
+              child: const Padding(
+                padding: EdgeInsets.all(15.0),
+                child: Icon(Icons.now_widgets, size: 40),
+              ),
             ),
             label: '',
           ),
           BottomNavigationBarItem(
             backgroundColor: Colors.blue,
-            icon: Padding(
-              padding: EdgeInsets.all(15.0),
-              child: Icon(Icons.filter_2, size: 40),
+            icon: GestureDetector(
+              onLongPress: () => _onLongPress(1),
+              child: const Padding(
+                padding: EdgeInsets.all(15.0),
+                child: Icon(Icons.filter_2, size: 40),
+              ),
             ),
             label: '',
           ),
           BottomNavigationBarItem(
             backgroundColor: Colors.blue,
-            icon: Padding(
-              padding: EdgeInsets.all(15.0),
-              child: Icon(Icons.accessibility_new_sharp, size: 40),
+            icon: GestureDetector(
+              onLongPress: () => _onLongPress(2),
+              child: const Padding(
+                padding: EdgeInsets.all(15.0),
+                child: Icon(Icons.accessibility_new_sharp, size: 40),
+              ),
             ),
             label: '',
           ),
           BottomNavigationBarItem(
             backgroundColor: Colors.blue,
-            icon: Padding(
-              padding: EdgeInsets.all(15.0),
-              child: Icon(Icons.menu_book_rounded, size: 40),
+            icon: GestureDetector(
+              onLongPress: () => _onLongPress(3),
+              child: const Padding(
+                padding: EdgeInsets.all(15.0),
+                child: Icon(Icons.menu_book_rounded, size: 40),
+              ),
             ),
             label: '',
           ),
           BottomNavigationBarItem(
             backgroundColor: Colors.blue,
-            icon: Padding(
-              padding: EdgeInsets.all(15.0),
-              child: Icon(Icons.star_outlined, size: 40),
+            icon: GestureDetector(
+              onLongPress: () => _onLongPress(4),
+              child: const Padding(
+                padding: EdgeInsets.all(15.0),
+                child: Icon(Icons.star_outlined, size: 40),
+              ),
             ),
             label: '',
           ),
@@ -196,8 +254,21 @@ class _MainScreenState extends State<MainScreen>
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final List<String> _items = ['#1', '#2', '#3', '#4', '#5'];
+
+  void addItem() {
+    setState(() {
+      _items.add('#${_items.length + 1}');
+    });
+  }
 
   void _navigateToDetailScreen(BuildContext context, String title) {
     Widget screen;
@@ -218,9 +289,9 @@ class HomeScreen extends StatelessWidget {
         screen = const box5.Box5Screen();
         break;
       default:
-        screen = const box1.Box1Screen();
+        screen = _PlaceholderScreen(title: title);
     }
-    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
+    Navigator.push(context, FadeRoute(page: screen));
   }
 
   @override
@@ -233,15 +304,10 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildSquare(context, '#1'),
-              const SizedBox(height: 15),
-              _buildSquare(context, '#2'),
-              const SizedBox(height: 15),
-              _buildSquare(context, '#3'),
-              const SizedBox(height: 15),
-              _buildSquare(context, '#4'),
-              const SizedBox(height: 15),
-              _buildSquare(context, '#5'),
+              for (int i = 0; i < _items.length; i++) ...[
+                if (i > 0) const SizedBox(height: 15),
+                _buildSquare(context, _items[i]),
+              ],
             ],
           ),
         ),
@@ -267,8 +333,27 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final List<Map<String, dynamic>> _entries = [
+    {'title': 'Void œ Atsura', 'subtitle': 'Gãcho Zacktaroā SinQua', 'iconIndex': 1},
+    {'title': 'Ē Yōukáñ', 'subtitle': 'Gãcho Zacktaroā SinQua', 'iconIndex': 2},
+    {'title': 'Sãi ōū Yeeo', 'subtitle': 'C-2/LD', 'iconIndex': 3},
+    {'title': 'Ē rex hyū ōū Ohurakai Kitashi', 'subtitle': 'DL', 'iconIndex': 4},
+  ];
+
+  void addItem() {
+    setState(() {
+      final n = _entries.length + 1;
+      _entries.add({'title': 'New Library $n', 'subtitle': '', 'iconIndex': 0});
+    });
+  }
 
   void _navigateToLibraryScreen(BuildContext context, String title) {
     Widget screen;
@@ -286,26 +371,13 @@ class ProfileScreen extends StatelessWidget {
         screen = const box9.Box9Screen();
         break;
       default:
-        screen = const box6.Box6Screen();
+        screen = _PlaceholderScreen(title: title);
     }
-    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
-  }
-
-  String _getSubtitle(String title) {
-    switch (title) {
-      case 'Void œ Atsura':
-      case 'Ē Yōukáñ':
-        return 'Gãcho Zacktaroā SinQua';
-      case 'Sãi ōū Yeeo':
-        return 'C-2/LD';
-      case 'Ē rex hyū ōū Ohurakai Kitashi':
-        return 'DL';
-      default:
-        return '';
-    }
+    Navigator.push(context, FadeRoute(page: screen));
   }
 
   void _onFacebookIconPressed(BuildContext context, int iconIndex) {
+    if (iconIndex == 0) return;
     Widget screen;
     switch (iconIndex) {
       case 1:
@@ -321,12 +393,15 @@ class ProfileScreen extends StatelessWidget {
         screen = const Icon4Screen();
         break;
       default:
-        screen = const Icon1Screen();
+        return;
     }
-    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
+    Navigator.push(context, FadeRoute(page: screen));
   }
 
-  Widget _buildSquare(BuildContext context, String title, int iconIndex) {
+  Widget _buildSquare(BuildContext context, Map<String, dynamic> entry) {
+    final title = entry['title'] as String;
+    final subtitle = entry['subtitle'] as String;
+    final iconIndex = entry['iconIndex'] as int;
     return Stack(
       children: [
         InkWell(
@@ -349,7 +424,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    _getSubtitle(title),
+                    subtitle,
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 10,
@@ -360,18 +435,19 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
         ),
-        Positioned(
-          bottom: 10,
-          left: 10,
-          child: GestureDetector(
-            onTap: () => _onFacebookIconPressed(context, iconIndex),
-            child: const Icon(
-              Icons.message_outlined,
-              color: Color.fromARGB(255, 72, 167, 255),
-              size: 50,
+        if (iconIndex > 0)
+          Positioned(
+            bottom: 10,
+            left: 10,
+            child: GestureDetector(
+              onTap: () => _onFacebookIconPressed(context, iconIndex),
+              child: const Icon(
+                Icons.message_outlined,
+                color: Color.fromARGB(255, 72, 167, 255),
+                size: 50,
+              ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -386,13 +462,10 @@ class ProfileScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildSquare(context, 'Void œ Atsura', 1),
-              const SizedBox(height: 15),
-              _buildSquare(context, 'Ē Yōukáñ', 2),
-              const SizedBox(height: 15),
-              _buildSquare(context, 'Sãi ōū Yeeo', 3),
-              const SizedBox(height: 15),
-              _buildSquare(context, 'Ē rex hyū ōū Ohurakai Kitashi', 4),
+              for (int i = 0; i < _entries.length; i++) ...[
+                if (i > 0) const SizedBox(height: 15),
+                _buildSquare(context, _entries[i]),
+              ],
             ],
           ),
         ),
@@ -401,8 +474,15 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-class SettingsScreen extends StatelessWidget {
-  static const List<String> fileNames = [
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final List<String> _fileNames = [
     'Pass Pagiē',
     'Custom Name 2',
     'Custom Name 3',
@@ -415,7 +495,11 @@ class SettingsScreen extends StatelessWidget {
     'Custom Name 10',
   ];
 
-  const SettingsScreen({super.key});
+  void addItem() {
+    setState(() {
+      _fileNames.add('Custom Name ${_fileNames.length + 1}');
+    });
+  }
 
   void _navigateToFileScreen(BuildContext context, String fileName) {
     Widget screen;
@@ -451,9 +535,9 @@ class SettingsScreen extends StatelessWidget {
         screen = const file10.File10Screen();
         break;
       default:
-        screen = const file1.File1Screen();
+        screen = _PlaceholderScreen(title: fileName);
     }
-    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
+    Navigator.push(context, FadeRoute(page: screen));
   }
 
   @override
@@ -467,9 +551,9 @@ class SettingsScreen extends StatelessWidget {
           crossAxisSpacing: 20,
           mainAxisSpacing: 20,
         ),
-        itemCount: fileNames.length,
+        itemCount: _fileNames.length,
         itemBuilder: (context, index) {
-          String fileName = fileNames[index];
+          String fileName = _fileNames[index];
           return GestureDetector(
             onTap: () => _navigateToFileScreen(context, fileName),
             child: Container(
@@ -506,10 +590,17 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
-  static const List<Widget> _screens = [
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  int _itemCount = 10;
+
+  static const List<Widget> _predefinedScreens = [
     notif1.Notif1Screen(),
     notif2.Notif2Screen(),
     notif3.Notif3Screen(),
@@ -522,11 +613,20 @@ class NotificationsScreen extends StatelessWidget {
     notif10.Notif10Screen(),
   ];
 
+  void addItem() {
+    setState(() {
+      _itemCount++;
+    });
+  }
+
   void _navigateToScreen(BuildContext context, int index) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => _screens[index]),
-    );
+    final Widget screen;
+    if (index < _predefinedScreens.length) {
+      screen = _predefinedScreens[index];
+    } else {
+      screen = _PlaceholderScreen(title: 'Notification ${index + 1}');
+    }
+    Navigator.push(context, FadeRoute(page: screen));
   }
 
   @override
@@ -535,7 +635,7 @@ class NotificationsScreen extends StatelessWidget {
       color: const Color.fromARGB(255, 93, 176, 255),
       padding: const EdgeInsets.all(16.0),
       child: GridView.builder(
-        itemCount: 10,
+        itemCount: _itemCount,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 16.0,
@@ -550,25 +650,86 @@ class NotificationsScreen extends StatelessWidget {
                 color: const Color.fromARGB(255, 112, 186, 255),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.add_photo_alternate_outlined,
-                      color: Colors.white70,
-                      size: 48,
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Photo Coming Soon',
-                      style: TextStyle(
+              child: const Column(
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: Icon(
+                        Icons.add_photo_alternate_outlined,
                         color: Colors.white70,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                        size: 48,
                       ),
                     ),
-                  ],
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 10.0),
+                    child: Text(
+                      'Chara Name',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class MessagesScreen extends StatefulWidget {
+  const MessagesScreen({super.key});
+
+  @override
+  State<MessagesScreen> createState() => _MessagesScreenState();
+}
+
+class _MessagesScreenState extends State<MessagesScreen> {
+  final List<String> _items = [];
+
+  void addItem() {
+    setState(() {
+      _items.add('Message ${_items.length + 1}');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_items.isEmpty) {
+      return const Center(
+        child: Text(
+          'Messages Screen',
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+      );
+    }
+    return Container(
+      color: const Color.fromARGB(255, 93, 176, 255),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16.0),
+        itemCount: _items.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: Container(
+              height: 80,
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 112, 186, 255),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  _items[index],
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -579,13 +740,30 @@ class NotificationsScreen extends StatelessWidget {
   }
 }
 
-class MessagesScreen extends StatelessWidget {
-  const MessagesScreen({super.key});
+// Placeholder screen for dynamically added items
+class _PlaceholderScreen extends StatelessWidget {
+  final String title;
+  const _PlaceholderScreen({required this.title});
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Messages Screen'),
+    return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 93, 176, 255),
+      appBar: AppBar(
+        backgroundColor: Colors.blue,
+        centerTitle: true,
+        title: Text(
+          title,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: const Center(
+        child: Text(
+          'Coming Soon',
+          style: TextStyle(color: Colors.white, fontSize: 20),
+        ),
+      ),
     );
   }
 }

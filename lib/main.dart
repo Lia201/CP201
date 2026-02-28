@@ -2,6 +2,19 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'mainscreen.dart';
 
+// Fade-in page route used for all navigation
+class FadeReplacementRoute extends PageRouteBuilder {
+  final Widget page;
+  FadeReplacementRoute({required this.page})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 300),
+        );
+}
+
 void main() {
   runApp(const MyApp());
 }
@@ -35,7 +48,7 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
     Timer(const Duration(seconds: 3), () {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const PasswordScreen()),
+        FadeReplacementRoute(page: const PasswordScreen()),
       );
     });
   }
@@ -91,7 +104,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
   void _onConfirm() {
     if (_password == '05812') { // Replace '5821' with '05812'
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const MainScreen()),
+        FadeReplacementRoute(page: const MainScreen()),
       );
     } else {
       // Show error message

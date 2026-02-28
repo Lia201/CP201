@@ -1,5 +1,18 @@
 import 'package:flutter/material.dart';
 
+// Fade-in page route used for all navigation
+class _FadeRoute extends PageRouteBuilder {
+  final Widget page;
+  _FadeRoute({required this.page})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 300),
+        );
+}
+
 class File1Screen extends StatefulWidget {
   const File1Screen({super.key});
 
@@ -21,7 +34,7 @@ class _File1ScreenState extends State<File1Screen> {
   void _onConfirm() {
     if (_password == '05812') {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const File1ScreenContent()),
+        _FadeRoute(page: const File1ScreenContent()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
