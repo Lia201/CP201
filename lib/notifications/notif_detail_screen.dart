@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Reusable detail screen for every notification square.
-/// No AppBar — uses a small back button instead.
+/// No AppBar, no back arrow — user uses the system back gesture/button.
 class NotifDetailScreen extends StatefulWidget {
   final int notifId;
   const NotifDetailScreen({super.key, required this.notifId});
@@ -76,7 +76,6 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
     );
   }
 
-  /// Safe image pick — catches MissingPluginException on unsupported platforms
   Future<String?> _pickImage() async {
     try {
       final picked = await _picker.pickImage(source: ImageSource.gallery);
@@ -93,7 +92,8 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Image picker not supported — try on a real device')),
+              content:
+                  Text('Image picker not supported — try on a real device')),
         );
       }
       return null;
@@ -121,6 +121,91 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
     }
   }
 
+  // ─── Long-press delete: move text/photo to Messages ───
+
+  Future<void> _onTextLongPress(int index) async {
+    final title = _texts[index]['title'] ?? '';
+    final label = title.isNotEmpty ? '"$title"' : 'this text entry';
+
+    if (!mounted) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Move to Messages?'),
+        content: Text('Are you sure you want to move $label to Messages?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('No')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Yes')),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    final removedText = _texts[index];
+    setState(() => _texts.removeAt(index));
+    _saveData();
+
+    // Add to messages_moved
+    final prefs = await SharedPreferences.getInstance();
+    final movedRaw = prefs.getString('messages_moved') ?? '[]';
+    final movedList = jsonDecode(movedRaw) as List;
+    movedList.add({
+      'notifId': widget.notifId,
+      'charaName': removedText['title']?.isNotEmpty == true
+          ? removedText['title']
+          : 'Text entry',
+      'fromSection': -1, // -1 means it's a text/photo item, not a square
+      'fromIndex': -1,
+      'type': 'text',
+      'data': removedText,
+    });
+    await prefs.setString('messages_moved', jsonEncode(movedList));
+  }
+
+  Future<void> _onPhotoLongPress(int index) async {
+    if (!mounted) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Move to Messages?'),
+        content:
+            const Text('Are you sure you want to move this photo to Messages?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('No')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Yes')),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    final removedPath = _photos[index];
+    setState(() => _photos.removeAt(index));
+    _saveData();
+
+    final prefs = await SharedPreferences.getInstance();
+    final movedRaw = prefs.getString('messages_moved') ?? '[]';
+    final movedList = jsonDecode(movedRaw) as List;
+    movedList.add({
+      'notifId': widget.notifId,
+      'charaName': 'Photo',
+      'fromSection': -1,
+      'fromIndex': -1,
+      'type': 'photo',
+      'data': removedPath,
+    });
+    await prefs.setString('messages_moved', jsonEncode(movedList));
+  }
+
+  // ─── Build ───
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -136,19 +221,12 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
         body: SafeArea(
           child: Column(
             children: [
-              // ── Top info section (replaces AppBar) ──
+              // ── Top info section (no back arrow) ──
               Padding(
-                padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Back button
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back,
-                          color: Colors.white, size: 26),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const SizedBox(width: 4),
                     // Photo square
                     GestureDetector(
                       onTap: _pickHeaderPhoto,
@@ -177,7 +255,7 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    // Name + Description (auto-expanding)
+                    // Name + Description
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,7 +358,7 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
     );
   }
 
-  // ─── Text tab — boxes auto-expand with content ───
+  // ─── Text tab ───
   Widget _buildTextTab() {
     if (_texts.isEmpty) {
       return const Center(
@@ -294,64 +372,66 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
       itemBuilder: (context, index) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 24),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 200),
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 112, 186, 255),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Title
-                TextField(
-                  controller: TextEditingController(
-                      text: _texts[index]['title'] ?? ''),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w300,
-                    fontStyle: FontStyle.italic,
+          child: GestureDetector(
+            onLongPress: () => _onTextLongPress(index),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 200),
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 112, 186, 255),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: TextEditingController(
+                        text: _texts[index]['title'] ?? ''),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w300,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: 'Add a title...',
+                      hintStyle: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w300,
+                          fontStyle: FontStyle.italic),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.only(bottom: 4),
+                    ),
+                    onChanged: (val) {
+                      _texts[index]['title'] = val;
+                      _saveData();
+                    },
                   ),
-                  decoration: const InputDecoration(
-                    hintText: 'Add a title...',
-                    hintStyle: TextStyle(
-                        color: Colors.white38,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w300,
-                        fontStyle: FontStyle.italic),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.only(bottom: 4),
+                  const Divider(
+                      color: Colors.white24, height: 1, thickness: 0.5),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: TextEditingController(
+                        text: _texts[index]['body'] ?? ''),
+                    maxLines: null,
+                    minLines: 6,
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 15),
+                    decoration: const InputDecoration.collapsed(
+                      hintText: 'Type here...',
+                      hintStyle: TextStyle(color: Colors.white54),
+                    ),
+                    onChanged: (val) {
+                      _texts[index]['body'] = val;
+                      _saveData();
+                    },
                   ),
-                  onChanged: (val) {
-                    _texts[index]['title'] = val;
-                    _saveData();
-                  },
-                ),
-                const Divider(
-                    color: Colors.white24, height: 1, thickness: 0.5),
-                const SizedBox(height: 4),
-                // Body — grows with content
-                TextField(
-                  controller: TextEditingController(
-                      text: _texts[index]['body'] ?? ''),
-                  maxLines: null,
-                  minLines: 6,
-                  style:
-                      const TextStyle(color: Colors.white, fontSize: 15),
-                  decoration: const InputDecoration.collapsed(
-                    hintText: 'Type here...',
-                    hintStyle: TextStyle(color: Colors.white54),
-                  ),
-                  onChanged: (val) {
-                    _texts[index]['body'] = val;
-                    _saveData();
-                  },
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -375,26 +455,29 @@ class _NotifDetailScreenState extends State<NotifDetailScreen> {
         final file = File(path);
         return Padding(
           padding: const EdgeInsets.only(bottom: 24),
-          child: Container(
-            height: 200,
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 112, 186, 255),
-              borderRadius: BorderRadius.circular(10),
+          child: GestureDetector(
+            onLongPress: () => _onPhotoLongPress(index),
+            child: Container(
+              height: 200,
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 112, 186, 255),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: file.existsSync()
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.file(file,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: 200),
+                    )
+                  : Center(
+                      child: Text(path,
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 13),
+                          textAlign: TextAlign.center),
+                    ),
             ),
-            child: file.existsSync()
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.file(file,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: 200),
-                  )
-                : Center(
-                    child: Text(path,
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 13),
-                        textAlign: TextAlign.center),
-                  ),
           ),
         );
       },

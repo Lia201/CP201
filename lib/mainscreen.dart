@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
@@ -776,6 +777,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return sectionIndex * 10000 + squareIndex + 1;
   }
 
+  Future<Map<String, dynamic>?> _loadNotifData(int notifId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('notif_$notifId');
+    if (raw != null) {
+      return jsonDecode(raw) as Map<String, dynamic>;
+    }
+    return null;
+  }
+
   void _navigateToScreen(
       BuildContext context, int sectionIndex, int squareIndex) {
     Navigator.push(
@@ -783,7 +793,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       FadeRoute(
           page: NotifDetailScreen(
               notifId: _notifId(sectionIndex, squareIndex))),
-    );
+    ).then((_) {
+      if (mounted) setState(() {}); // refresh grid to reflect name/photo changes
+    });
   }
 
   /// Long-press a square: confirm → move to Messages screen.
@@ -930,6 +942,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       childAspectRatio: 1.0,
                     ),
                     itemBuilder: (context, index) {
+                      final nId = _notifId(_activeSection, index);
                       return GestureDetector(
                         onTap: () => _navigateToScreen(
                             context, _activeSection, index),
@@ -942,31 +955,51 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             borderRadius:
                                 BorderRadius.circular(12),
                           ),
-                          child: const Column(
-                            children: [
-                              Expanded(
-                                child: Center(
-                                  child: Icon(
-                                    Icons
-                                        .add_photo_alternate_outlined,
-                                    color: Colors.white70,
-                                    size: 48,
+                          child: FutureBuilder<Map<String, dynamic>?>(
+                            future: _loadNotifData(nId),
+                            builder: (ctx, snap) {
+                              final data = snap.data;
+                              final name = (data?['name'] as String?)?.isNotEmpty == true
+                                  ? data!['name'] as String
+                                  : 'Chara Name';
+                              final photo = data?['photoPath'] as String? ?? '';
+                              final hasPhoto = photo.isNotEmpty && File(photo).existsSync();
+                              return Column(
+                                children: [
+                                  Expanded(
+                                    child: Center(
+                                      child: hasPhoto
+                                          ? ClipRRect(
+                                              borderRadius: const BorderRadius.vertical(
+                                                  top: Radius.circular(12)),
+                                              child: Image.file(
+                                                File(photo),
+                                                fit: BoxFit.cover,
+                                                width: double.infinity,
+                                                height: double.infinity,
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.add_photo_alternate_outlined,
+                                              color: Colors.white70,
+                                              size: 48,
+                                            ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(
-                                    bottom: 10.0),
-                                child: Text(
-                                  'Chara Name',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 10.0),
+                                    child: Text(
+                                      name,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                            ],
+                                ],
+                              );
+                            },
                           ),
                         ),
                       );
