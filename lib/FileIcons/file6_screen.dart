@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 
 class File6Screen extends StatelessWidget {
+  const File6Screen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('File 1'),
+        title: const Text('File 1'),
         backgroundColor: Colors.blue,
       ),
-      body: Center(
+      body: const Center(
         child: Text(
           'Welcome to File 1 Screen!',
           style: TextStyle(fontSize: 24),

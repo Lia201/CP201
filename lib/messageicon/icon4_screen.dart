@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Icon4Screen extends StatefulWidget {
+  const Icon4Screen({super.key});
+
   @override
-  _Icon4ScreenState createState() => _Icon4ScreenState();
+  State<Icon4Screen> createState() => _Icon4ScreenState();
 }
 
 class _Icon4ScreenState extends State<Icon4Screen> {
-  final TextEditingController _initialController = TextEditingController();
   List<TextEditingController> _controllers = [];
   List<String> _textData = []; // To store text data for each container
 
@@ -56,11 +57,11 @@ class _Icon4ScreenState extends State<Icon4Screen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 93, 176, 255),
+      backgroundColor: const Color.fromARGB(255, 93, 176, 255),
       appBar: AppBar(
         backgroundColor: Colors.blue,
         centerTitle: true,
-        title: Text(
+        title: const Text(
           'MaViãz ōū Fyū',
           style: TextStyle(
             color: Colors.white,
@@ -69,7 +70,7 @@ class _Icon4ScreenState extends State<Icon4Screen> {
           textAlign: TextAlign.center,
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -77,14 +78,14 @@ class _Icon4ScreenState extends State<Icon4Screen> {
         padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 10.0),
         child: Column(
           children: [
-            SizedBox(height: 20.0), // Space between the top of the screen and the first ListView container
+            const SizedBox(height: 20.0), // Space between the top of the screen and the first ListView container
             Expanded(
               child: ListView.builder(
                 itemCount: _controllers.length,
                 itemBuilder: (context, index) {
                   return Column(
                     children: [
-                      SizedBox(height: 40.0), // Space between each container in the list
+                      const SizedBox(height: 40.0), // Space between each container in the list
                       Dismissible(
                         key: Key(_controllers[index].hashCode.toString()),
                         direction: DismissDirection.endToStart,
@@ -93,23 +94,23 @@ class _Icon4ScreenState extends State<Icon4Screen> {
                         },
                         background: Container(
                           alignment: Alignment.centerRight,
-                          padding: EdgeInsets.symmetric(horizontal: 20.0),
-                          color: Color.fromARGB(255, 68, 165, 255),
-                          child: Icon(Icons.highlight_remove_outlined, color: Colors.white),
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          color: const Color.fromARGB(255, 68, 165, 255),
+                          child: const Icon(Icons.highlight_remove_outlined, color: Colors.white),
                         ),
                         child: Container(
-                          padding: EdgeInsets.all(16.0),
+                          padding: const EdgeInsets.all(16.0),
                           decoration: BoxDecoration(
-                            color: Color.fromARGB(255, 112, 186, 255),
+                            color: const Color.fromARGB(255, 112, 186, 255),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: TextField(
                             controller: _controllers[index],
                             maxLines: null,
-                            decoration: InputDecoration.collapsed(
+                            decoration: const InputDecoration.collapsed(
                               hintText: 'WIR...',
                             ),
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w400,
                               color: Colors.black45,
@@ -123,17 +124,17 @@ class _Icon4ScreenState extends State<Icon4Screen> {
                 },
               ),
             ),
-            SizedBox(height: 40), // Space between the ListView and the bottom button
+            const SizedBox(height: 40), // Space between the ListView and the bottom button
             Padding(
               padding: const EdgeInsets.only(bottom: 30.0),
               child: ElevatedButton(
                 onPressed: _addContainer,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
-                  shape: CircleBorder(),
-                  padding: EdgeInsets.all(28),
+                  shape: const CircleBorder(),
+                  padding: const EdgeInsets.all(28),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.adjust_outlined,
                   color: Colors.white,
                   size: 50,

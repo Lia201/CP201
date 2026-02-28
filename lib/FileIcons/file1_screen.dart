@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 class File1Screen extends StatefulWidget {
+  const File1Screen({super.key});
+
   @override
-  _File1ScreenState createState() => _File1ScreenState();
+  State<File1Screen> createState() => _File1ScreenState();
 }
 
 class _File1ScreenState extends State<File1Screen> {
@@ -19,11 +21,11 @@ class _File1ScreenState extends State<File1Screen> {
   void _onConfirm() {
     if (_password == '05812') {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => File1ScreenContent()),
+        MaterialPageRoute(builder: (context) => const File1ScreenContent()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Incorrect Password')),
+        const SnackBar(content: Text('Incorrect Password')),
       );
       setState(() {
         _password = '';
@@ -47,13 +49,13 @@ class _File1ScreenState extends State<File1Screen> {
         height: 75,
         child: TextButton(
           onPressed: () => _onKeyPress(number),
-          child: Text(number, style: TextStyle(fontSize: 24, color: Colors.white)),
           style: TextButton.styleFrom(
             backgroundColor: Colors.blue,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
           ),
+          child: Text(number, style: const TextStyle(fontSize: 24, color: Colors.white)),
         ),
       ),
     );
@@ -67,13 +69,13 @@ class _File1ScreenState extends State<File1Screen> {
         height: 75,
         child: TextButton(
           onPressed: onPressed,
-          child: Text(label, style: TextStyle(fontSize: 20, color: Colors.white)),
           style: TextButton.styleFrom(
-            backgroundColor: Color.fromARGB(255, 56, 159, 255),
+            backgroundColor: const Color.fromARGB(255, 56, 159, 255),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
           ),
+          child: Text(label, style: const TextStyle(fontSize: 20, color: Colors.white)),
         ),
       ),
     );
@@ -82,13 +84,13 @@ class _File1ScreenState extends State<File1Screen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 93, 176, 255),
+      backgroundColor: const Color.fromARGB(255, 93, 176, 255),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
+            const Text(
               'Enter Password',
               style: TextStyle(
                 fontSize: 24,
@@ -96,21 +98,21 @@ class _File1ScreenState extends State<File1Screen> {
                 color: Colors.white,
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Text(
               '*' * _password.length,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2.0,
                 color: Colors.white,
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Container(
               width: MediaQuery.of(context).size.width * 0.8,
               decoration: BoxDecoration(
-                color: Color.fromARGB(255, 112, 186, 255),
+                color: const Color.fromARGB(255, 112, 186, 255),
                 borderRadius: BorderRadius.circular(8),
               ),
               padding: const EdgeInsets.all(16.0),
@@ -144,15 +146,15 @@ class _File1ScreenState extends State<File1Screen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(width: 75, height: 75),
+                      const SizedBox(width: 75, height: 75),
                       _buildNumberButton('0'),
-                      Container(width: 75, height: 75),
+                      const SizedBox(width: 75, height: 75),
                     ],
                   ),
                 ],
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -168,12 +170,14 @@ class _File1ScreenState extends State<File1Screen> {
 }
 
 class File1ScreenContent extends StatelessWidget {
+  const File1ScreenContent({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 93, 176, 255),
+      backgroundColor: const Color.fromARGB(255, 93, 176, 255),
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Pass Pagiē',
           style: TextStyle(
             fontWeight: FontWeight.w600,
@@ -182,7 +186,7 @@ class File1ScreenContent extends StatelessWidget {
         ),
         centerTitle: true,
         backgroundColor: Colors.blue,
-        iconTheme: IconThemeData(
+        iconTheme: const IconThemeData(
           color: Colors.white, // Change the back arrow color to white
         ),
       ),

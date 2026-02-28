@@ -3,10 +3,12 @@ import 'dart:async';
 import 'mainscreen.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -15,23 +17,25 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: SplashScreen(),
+      home: const SplashScreen(),
     );
   }
 }
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
-  _SplashScreenState createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(Duration(seconds: 3), () {
+    Timer(const Duration(seconds: 3), () {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => PasswordScreen()),
+        MaterialPageRoute(builder: (context) => const PasswordScreen()),
       );
     });
   }
@@ -39,7 +43,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 93, 176, 255), // Set the background color to a2d2ff
+      backgroundColor: const Color.fromARGB(255, 93, 176, 255), // Set the background color to a2d2ff
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -50,8 +54,8 @@ class _SplashScreenState extends State<SplashScreen> {
               height: 200, // Set the height of the image
               fit: BoxFit.fill, // Ensure the image covers the container
             ),
-            SizedBox(height: 20), // Add some space between the image and the text
-            Text(
+            const SizedBox(height: 20), // Add some space between the image and the text
+            const Text(
               '7/17/2024',
               style: TextStyle(
                 fontSize: 20,
@@ -67,8 +71,10 @@ class _SplashScreenState extends State<SplashScreen> {
 }
 
 class PasswordScreen extends StatefulWidget {
+  const PasswordScreen({super.key});
+
   @override
-  _PasswordScreenState createState() => _PasswordScreenState();
+  State<PasswordScreen> createState() => _PasswordScreenState();
 }
 
 class _PasswordScreenState extends State<PasswordScreen> {
@@ -85,12 +91,12 @@ class _PasswordScreenState extends State<PasswordScreen> {
   void _onConfirm() {
     if (_password == '05812') { // Replace '5821' with '05812'
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => MainScreen()),
+        MaterialPageRoute(builder: (context) => const MainScreen()),
       );
     } else {
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Incorrect Password')),
+        const SnackBar(content: Text('Incorrect Password')),
       );
       setState(() {
         _password = '';
@@ -114,13 +120,13 @@ class _PasswordScreenState extends State<PasswordScreen> {
         height: 75,
         child: TextButton(
           onPressed: () => _onKeyPress(number),
-          child: Text(number, style: TextStyle(fontSize: 24, color: Colors.white)),
           style: TextButton.styleFrom(
             backgroundColor: Colors.blue, // Blue color for number buttons
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8), // Square shape
             ),
           ),
+          child: Text(number, style: const TextStyle(fontSize: 24, color: Colors.white)),
         ),
       ),
     );
@@ -134,13 +140,13 @@ class _PasswordScreenState extends State<PasswordScreen> {
         height: 75,
         child: TextButton(
           onPressed: onPressed,
-          child: Text(label, style: TextStyle(fontSize: 20, color: Colors.white)),
           style: TextButton.styleFrom(
-            backgroundColor: Color.fromARGB(255, 56, 159, 255),  // Light blue color for delete and confirm buttons
+            backgroundColor: const Color.fromARGB(255, 56, 159, 255),  // Light blue color for delete and confirm buttons
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8), // Square shape
             ),
           ),
+          child: Text(label, style: const TextStyle(fontSize: 20, color: Colors.white)),
         ),
       ),
     );
@@ -149,13 +155,13 @@ class _PasswordScreenState extends State<PasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 93, 176, 255), // Set the background color to a2d2ff
+      backgroundColor: const Color.fromARGB(255, 93, 176, 255), // Set the background color to a2d2ff
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
+            const Text(
               'Enter Password',
               style: TextStyle(
                 fontSize: 24,
@@ -163,21 +169,21 @@ class _PasswordScreenState extends State<PasswordScreen> {
                 color: Colors.white,
               ),
             ),
-            SizedBox(height: 20), // Space between title and password display
+            const SizedBox(height: 20), // Space between title and password display
             Text(
               '*' * _password.length,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2.0,
                 color: Colors.white,
               ),
             ),
-            SizedBox(height: 20), // Space between password display and buttons
+            const SizedBox(height: 20), // Space between password display and buttons
             Container(
               width: MediaQuery.of(context).size.width * 0.8, // Adjust width dynamically
               decoration: BoxDecoration(
-                color: Color.fromARGB(255, 112, 186, 255),
+                color: const Color.fromARGB(255, 112, 186, 255),
                 borderRadius: BorderRadius.circular(8), // Match border radius
               ),
               padding: const EdgeInsets.all(16.0),
@@ -211,15 +217,15 @@ class _PasswordScreenState extends State<PasswordScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(width: 75, height: 75), // Empty space
+                      const SizedBox(width: 75, height: 75), // Empty space
                       _buildNumberButton('0'),
-                      Container(width: 75, height: 75), // Empty space
+                      const SizedBox(width: 75, height: 75), // Empty space
                     ],
                   ),
                 ],
               ),
             ),
-            SizedBox(height: 20), // Add space between number buttons and action buttons
+            const SizedBox(height: 20), // Add space between number buttons and action buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

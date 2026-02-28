@@ -30,16 +30,16 @@ import 'FileIcons/file9_screen.dart' as file9;
 import 'FileIcons/file10_screen.dart' as file10;
 
 void main() {
-  runApp(MaterialApp(
+  runApp(const MaterialApp(
     home: MainScreen(),
   ));
 }
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({Key? key}) : super(key: key);
+  const MainScreen({super.key});
 
   @override
-  _MainScreenState createState() => _MainScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen>
@@ -48,11 +48,11 @@ class _MainScreenState extends State<MainScreen>
   late AnimationController _controller;
 
   final List<Widget> _children = [
-    HomeScreen(),
-    SettingsScreen(),
-    NotificationsScreen(),
-    ProfileScreen(),
-    MessagesScreen(),
+    const HomeScreen(),
+    const SettingsScreen(),
+    const NotificationsScreen(),
+    const ProfileScreen(),
+    const MessagesScreen(),
   ];
 
   @override
@@ -60,7 +60,7 @@ class _MainScreenState extends State<MainScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(seconds: 2),
+      duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
   }
 
@@ -79,17 +79,17 @@ class _MainScreenState extends State<MainScreen>
   void _onExclamationButtonPressed() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => InfoScreen()),
+      MaterialPageRoute(builder: (context) => const InfoScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 93, 176, 255),
+      backgroundColor: const Color.fromARGB(255, 93, 176, 255),
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(
+          icon: const Icon(
             Icons.info_outline,
             size: 30,
             color: Color.fromARGB(255, 93, 176, 255),
@@ -103,23 +103,23 @@ class _MainScreenState extends State<MainScreen>
               'CP AXÕDA',
               style: TextStyle(
                 fontWeight: FontWeight.w800,
-                color: Color.fromARGB(255, 0, 247, 255),
+                color: const Color.fromARGB(255, 0, 247, 255),
                 fontSize: 32,
                 shadows: [
                   Shadow(
                     blurRadius: 20.0 + 10.0 * sin(_controller.value * 2 * pi),
-                    color: Color.fromARGB(255, 0, 247, 255),
-                    offset: Offset(0, 0),
+                    color: const Color.fromARGB(255, 0, 247, 255),
+                    offset: const Offset(0, 0),
                   ),
                   Shadow(
                     blurRadius: 30.0 + 15.0 * sin(_controller.value * 2 * pi),
-                    color: Color.fromARGB(150, 0, 247, 255),
-                    offset: Offset(0, 0),
+                    color: const Color.fromARGB(150, 0, 247, 255),
+                    offset: const Offset(0, 0),
                   ),
                   Shadow(
                     blurRadius: 40.0 + 20.0 * sin(_controller.value * 2 * pi),
-                    color: Color.fromARGB(100, 0, 247, 255),
-                    offset: Offset(0, 0),
+                    color: const Color.fromARGB(100, 0, 247, 255),
+                    offset: const Offset(0, 0),
                   ),
                 ],
               ),
@@ -136,11 +136,11 @@ class _MainScreenState extends State<MainScreen>
         onTap: onTabTapped,
         showSelectedLabels: false,
         showUnselectedLabels: false,
-        items: [
+        items: const [
           BottomNavigationBarItem(
             backgroundColor: Colors.blue,
             icon: Padding(
-              padding: const EdgeInsets.all(15.0),
+              padding: EdgeInsets.all(15.0),
               child: Icon(Icons.now_widgets, size: 40),
             ),
             label: '',
@@ -148,7 +148,7 @@ class _MainScreenState extends State<MainScreen>
           BottomNavigationBarItem(
             backgroundColor: Colors.blue,
             icon: Padding(
-              padding: const EdgeInsets.all(15.0),
+              padding: EdgeInsets.all(15.0),
               child: Icon(Icons.filter_2, size: 40),
             ),
             label: '',
@@ -156,7 +156,7 @@ class _MainScreenState extends State<MainScreen>
           BottomNavigationBarItem(
             backgroundColor: Colors.blue,
             icon: Padding(
-              padding: const EdgeInsets.all(15.0),
+              padding: EdgeInsets.all(15.0),
               child: Icon(Icons.accessibility_new_sharp, size: 40),
             ),
             label: '',
@@ -164,7 +164,7 @@ class _MainScreenState extends State<MainScreen>
           BottomNavigationBarItem(
             backgroundColor: Colors.blue,
             icon: Padding(
-              padding: const EdgeInsets.all(15.0),
+              padding: EdgeInsets.all(15.0),
               child: Icon(Icons.menu_book_rounded, size: 40),
             ),
             label: '',
@@ -172,7 +172,7 @@ class _MainScreenState extends State<MainScreen>
           BottomNavigationBarItem(
             backgroundColor: Colors.blue,
             icon: Padding(
-              padding: const EdgeInsets.all(15.0),
+              padding: EdgeInsets.all(15.0),
               child: Icon(Icons.star_outlined, size: 40),
             ),
             label: '',
@@ -186,26 +186,28 @@ class _MainScreenState extends State<MainScreen>
 }
 
 class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
   void _navigateToDetailScreen(BuildContext context, String title) {
     Widget screen;
     switch (title) {
       case '#1':
-        screen = box1.Box1Screen();
+        screen = const box1.Box1Screen();
         break;
       case '#2':
-        screen = box2.Box2Screen();
+        screen = const box2.Box2Screen();
         break;
       case '#3':
-        screen = box3.Box3Screen();
+        screen = const box3.Box3Screen();
         break;
       case '#4':
-        screen = box4.Box4Screen();
+        screen = const box4.Box4Screen();
         break;
       case '#5':
-        screen = box5.Box5Screen();
+        screen = const box5.Box5Screen();
         break;
       default:
-        screen = box1.Box1Screen();
+        screen = const box1.Box1Screen();
     }
     Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
@@ -213,7 +215,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Color.fromARGB(255, 93, 176, 255),
+      color: const Color.fromARGB(255, 93, 176, 255),
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -221,13 +223,13 @@ class HomeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildSquare(context, '#1'),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               _buildSquare(context, '#2'),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               _buildSquare(context, '#3'),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               _buildSquare(context, '#4'),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               _buildSquare(context, '#5'),
             ],
           ),
@@ -242,11 +244,11 @@ class HomeScreen extends StatelessWidget {
       child: Container(
         width: double.infinity,
         height: 200,
-        color: Color.fromARGB(255, 112, 186, 255),
+        color: const Color.fromARGB(255, 112, 186, 255),
         child: Center(
           child: Text(
             title,
-            style: TextStyle(color: Colors.white, fontSize: 28),
+            style: const TextStyle(color: Colors.white, fontSize: 28),
           ),
         ),
       ),
@@ -255,23 +257,25 @@ class HomeScreen extends StatelessWidget {
 }
 
 class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
   void _navigateToLibraryScreen(BuildContext context, String title) {
     Widget screen;
     switch (title) {
       case 'Void œ Atsura':
-        screen = box6.Box6Screen();
+        screen = const box6.Box6Screen();
         break;
       case 'Ē Yōukáñ':
-        screen = box7.Box7Screen();
+        screen = const box7.Box7Screen();
         break;
       case 'Sãi ōū Yeeo':
-        screen = box8.Box8Screen();
+        screen = const box8.Box8Screen();
         break;
       case 'Ē rex hyū ōū Ohurakai Kitashi':
-        screen = box9.Box9Screen();
+        screen = const box9.Box9Screen();
         break;
       default:
-        screen = box6.Box6Screen();
+        screen = const box6.Box6Screen();
     }
     Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
@@ -294,19 +298,19 @@ class ProfileScreen extends StatelessWidget {
     Widget screen;
     switch (iconIndex) {
       case 1:
-        screen = Icon1Screen();
+        screen = const Icon1Screen();
         break;
       case 2:
-        screen = Icon2Screen();
+        screen = const Icon2Screen();
         break;
       case 3:
-        screen = Icon3Screen();
+        screen = const Icon3Screen();
         break;
       case 4:
-        screen = Icon4Screen();
+        screen = const Icon4Screen();
         break;
       default:
-        screen = Icon1Screen();
+        screen = const Icon1Screen();
     }
     Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
@@ -319,23 +323,23 @@ class ProfileScreen extends StatelessWidget {
           child: Container(
             width: double.infinity,
             height: 150,
-            color: Color.fromARGB(255, 112, 186, 255),
+            color: const Color.fromARGB(255, 112, 186, 255),
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
-                      color: const Color.fromARGB(255, 62, 102, 225),
+                    style: const TextStyle(
+                      color: Color.fromARGB(255, 62, 102, 225),
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  SizedBox(height: 5),
+                  const SizedBox(height: 5),
                   Text(
                     _getSubtitle(title),
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 10,
                     ),
@@ -350,7 +354,7 @@ class ProfileScreen extends StatelessWidget {
           left: 10,
           child: GestureDetector(
             onTap: () => _onFacebookIconPressed(context, iconIndex),
-            child: Icon(
+            child: const Icon(
               Icons.message_outlined,
               color: Color.fromARGB(255, 72, 167, 255),
               size: 50,
@@ -364,7 +368,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Color.fromARGB(255, 93, 176, 255),
+      color: const Color.fromARGB(255, 93, 176, 255),
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -372,11 +376,11 @@ class ProfileScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildSquare(context, 'Void œ Atsura', 1),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               _buildSquare(context, 'Ē Yōukáñ', 2),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               _buildSquare(context, 'Sãi ōū Yeeo', 3),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               _buildSquare(context, 'Ē rex hyū ōū Ohurakai Kitashi', 4),
             ],
           ),
@@ -387,7 +391,7 @@ class ProfileScreen extends StatelessWidget {
 }
 
 class SettingsScreen extends StatelessWidget {
-  final List<String> fileNames = [
+  static const List<String> fileNames = [
     'Pass Pagiē',
     'Custom Name 2',
     'Custom Name 3',
@@ -400,41 +404,43 @@ class SettingsScreen extends StatelessWidget {
     'Custom Name 10',
   ];
 
+  const SettingsScreen({super.key});
+
   void _navigateToFileScreen(BuildContext context, String fileName) {
     Widget screen;
     switch (fileName) {
       case 'Pass Pagiē':
-        screen = file1.File1Screen();
+        screen = const file1.File1Screen();
         break;
       case 'Custom Name 2':
-        screen = file2.File2Screen();
+        screen = const file2.File2Screen();
         break;
       case 'Custom Name 3':
-        screen = file3.File3Screen();
+        screen = const file3.File3Screen();
         break;
       case 'Custom Name 4':
-        screen = file4.File4Screen();
+        screen = const file4.File4Screen();
         break;
       case 'Custom Name 5':
-        screen = file5.File5Screen();
+        screen = const file5.File5Screen();
         break;
       case 'Custom Name 6':
-        screen = file6.File6Screen();
+        screen = const file6.File6Screen();
         break;
       case 'Custom Name 7':
-        screen = file7.File7Screen();
+        screen = const file7.File7Screen();
         break;
       case 'Custom Name 8':
-        screen = file8.File8Screen();
+        screen = const file8.File8Screen();
         break;
       case 'Custom Name 9':
-        screen = file9.File9Screen();
+        screen = const file9.File9Screen();
         break;
       case 'Custom Name 10':
-        screen = file10.File10Screen();
+        screen = const file10.File10Screen();
         break;
       default:
-        screen = file1.File1Screen();
+        screen = const file1.File1Screen();
     }
     Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
@@ -442,10 +448,10 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Color.fromARGB(255, 93, 176, 255),
+      color: const Color.fromARGB(255, 93, 176, 255),
       child: GridView.builder(
         padding: const EdgeInsets.all(20.0),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 20,
           mainAxisSpacing: 20,
@@ -457,22 +463,22 @@ class SettingsScreen extends StatelessWidget {
             onTap: () => _navigateToFileScreen(context, fileName),
             child: Container(
               decoration: BoxDecoration(
-                color: Color.fromARGB(255, 112, 186, 255),
+                color: const Color.fromARGB(255, 112, 186, 255),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.insert_drive_file_rounded,
                       color: Colors.white,
                       size: 100,
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     Text(
                       fileName,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -490,18 +496,22 @@ class SettingsScreen extends StatelessWidget {
 }
 
 class NotificationsScreen extends StatelessWidget {
+  const NotificationsScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Text('Notifications Screen'),
     );
   }
 }
 
 class MessagesScreen extends StatelessWidget {
+  const MessagesScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Text('Messages Screen'),
     );
   }
@@ -510,25 +520,27 @@ class MessagesScreen extends StatelessWidget {
 // La Hon
 
 class InfoScreen extends StatelessWidget {
+  const InfoScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 93, 176, 255),
+      backgroundColor: const Color.fromARGB(255, 93, 176, 255),
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Information',
           style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
         ),
         centerTitle: true,
         backgroundColor: Colors.blue,
-        iconTheme: IconThemeData(
+        iconTheme: const IconThemeData(
           color: Colors.white,
         ),
       ),
-      body: SingleChildScrollView(
+      body: const SingleChildScrollView(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
