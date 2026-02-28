@@ -500,10 +500,42 @@ class NotificationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Notifications Screen'),
-    );
-  }
+      return Container(
+        color: const Color.fromARGB(255, 93, 176, 255),
+        padding: const EdgeInsets.all(16.0),
+        child: GridView.builder(
+          itemCount: 10,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 16.0,
+            mainAxisSpacing: 16.0,
+            childAspectRatio: 1.0,
+          ),
+          itemBuilder: (context, index) {
+            return GestureDetector(
+              onTap: () {
+                // Placeholder tap action; can navigate or show details
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 112, 186, 255),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Center(
+                  child: Text(
+                    'Square',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
 }
 
 class MessagesScreen extends StatelessWidget {
